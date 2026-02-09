@@ -42,14 +42,13 @@ const commands = [
 
   new SlashCommandBuilder()
   .setName("userinfo")
-  .setDescription("Menampilkan informasi user")
+  .setDescription("Informasi user")
   .addUserOption(option =>
     option
       .setName("user")
-      .setDescription("Pilih user (opsional)")
+      .setDescription("Pilih user")
       .setRequired(false)
   ),
-
 
   new SlashCommandBuilder()
     .setName("say")
@@ -183,19 +182,53 @@ client.on("interactionCreate", async interaction => {
     }
 
     if (interaction.commandName === "userinfo") {
-      const user = interaction.user;
+  const targetUser =
+    interaction.options.getUser("user") || interaction.user;
 
-      const embed = new EmbedBuilder()
-        .setColor(0x5865f2)
-        .setTitle("👤 User Info")
-        .setThumbnail(user.displayAvatarURL())
-        .addFields(
-          { name: "Username", value: user.tag, inline: true },
-          { name: "User ID", value: user.id, inline: true }
-        );
+  const member = await interaction.guild.members.fetch(targetUser.id);
 
-      return interaction.reply({ embeds: [embed] });
-    }
+  const roles = member.roles.cache
+    .filter(r => r.id !== interaction.guild.id)
+    .map(r => r.toString())
+    .join(", ") || "None";
+
+  const embed = new EmbedBuilder()
+    .setColor(0x5865f2)
+    .setAuthor({
+      name: targetUser.tag,
+      iconURL: targetUser.displayAvatarURL()
+    })
+    .setThumbnail(targetUser.displayAvatarURL({ size: 512 }))
+    .addFields(
+      { name: "🆔 ID", value: targetUser.id },
+      {
+        name: "📅 Joined Discord",
+        value: `<t:${Math.floor(targetUser.createdTimestamp / 1000)}:F>`
+      },
+      {
+        name: "🏷 Nickname",
+        value: member.nickname || "None"
+      },
+      {
+        name: "📌 Joined Server",
+        value: `<t:${Math.floor(member.joinedTimestamp / 1000)}:F>`
+      },
+      {
+        name: "🎭 Roles",
+        value: roles
+      }
+    );
+
+  const avatarButton = new ButtonBuilder()
+    .setLabel("View avatar")
+    .setStyle(ButtonStyle.Link)
+    .setURL(targetUser.displayAvatarURL({ size: 1024 }));
+
+  return interaction.reply({
+    embeds: [embed],
+    components: [new ActionRowBuilder().addComponents(avatarButton)]
+  });
+}
 
     if (interaction.commandName === "say") {
       const text = interaction.options.getString("text");
