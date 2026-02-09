@@ -43,6 +43,16 @@ const commands = [
   new SlashCommandBuilder()
     .setName("userinfo")
     .setDescription("Informasi user"),
+
+  new SlashCommandBuilder()
+     .setName("say")
+    .setDescription("Bot mengirim pesan sesuai teks kamu")
+    .addStringOption(option =>
+      option
+        .setName("text")
+        .setDescription("Pesan yang ingin dikirim bot")
+        .setRequired(true)
+    ),
 ];
 
 // =====================
@@ -78,6 +88,7 @@ const helpData = {
       title: "ℹ️ Information (2/2)",
       description: `
 **/userinfo** – User information
+**/say** - Bot repeat your message
       `
     }
   ],
@@ -179,6 +190,14 @@ client.on("interactionCreate", async interaction => {
       return interaction.reply({ embeds: [embed] });
     }
 
+    if (interaction.commandName === "say") {
+      const text = interaction.options.getString("text");
+
+      return interaction.reply({
+        content: text
+      });
+    }
+
     if (interaction.commandName === "help") {
       const embed = new EmbedBuilder()
         .setColor(0x5865f2)
@@ -255,3 +274,4 @@ client.on("interactionCreate", async interaction => {
 
 // =====================
 client.login(process.env.DISCORD_TOKEN);
+
