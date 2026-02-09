@@ -41,11 +41,18 @@ const commands = [
     .setDescription("Statistik bot"),
 
   new SlashCommandBuilder()
-    .setName("userinfo")
-    .setDescription("Informasi user"),
+  .setName("userinfo")
+  .setDescription("Menampilkan informasi user")
+  .addUserOption(option =>
+    option
+      .setName("user")
+      .setDescription("Pilih user (opsional)")
+      .setRequired(false)
+  ),
+
 
   new SlashCommandBuilder()
-     .setName("say")
+    .setName("say")
     .setDescription("Bot mengirim pesan sesuai teks kamu")
     .addStringOption(option =>
       option
