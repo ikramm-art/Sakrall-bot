@@ -16,7 +16,11 @@ import {
 // CLIENT
 // =====================
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds],
+ intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildPresences,
+    GatewayIntentBits.GuildMembers
+  ],
 });
 
 // =====================
@@ -152,13 +156,17 @@ client.once("ready", () => {
 // =====================
 client.on("interactionCreate", async interaction => {
 
-  // ===== SLASH COMMAND =====
+  // =====================
+  // SLASH COMMAND
+  // =====================
   if (interaction.isChatInputCommand()) {
 
+    // /ping
     if (interaction.commandName === "ping") {
       return interaction.reply("😂 Lem!");
     }
 
+    // /about
     if (interaction.commandName === "about") {
       const embed = new EmbedBuilder()
         .setColor(0x5865f2)
@@ -168,6 +176,7 @@ client.on("interactionCreate", async interaction => {
       return interaction.reply({ embeds: [embed] });
     }
 
+    // /stats
     if (interaction.commandName === "stats") {
       const embed = new EmbedBuilder()
         .setColor(0x5865f2)
@@ -181,68 +190,133 @@ client.on("interactionCreate", async interaction => {
       return interaction.reply({ embeds: [embed] });
     }
 
+    // =====================
+    // /userinfo OMNISCIENT
+    // =====================
     if (interaction.commandName === "userinfo") {
-  const targetUser =
-    interaction.options.getUser("user") || interaction.user;
 
-  const member = await interaction.guild.members.fetch(targetUser.id);
+      const target =
+        interaction.options.getUser("user") || interaction.user;
 
-  const roles = member.roles.cache
-    .filter(r => r.id !== interaction.guild.id)
-    .map(r => r.toString())
-    .join(", ") || "None";
+      const member = await interaction.guild.members
+        .fetch(target.id)
+        .catch(() => null);
 
-  const embed = new EmbedBuilder()
-    .setColor(0x5865f2)
-    .setAuthor({
-      name: targetUser.tag,
-      iconURL: targetUser.displayAvatarURL()
-    })
-    .setThumbnail(targetUser.displayAvatarURL({ size: 512 }))
-    .addFields(
-      { name: "🆔 ID", value: targetUser.id },
-      {
-        name: "📅 Joined Discord",
-        value: `<t:${Math.floor(targetUser.createdTimestamp / 1000)}:F>`
-      },
-      {
-        name: "🏷 Nickname",
-        value: member.nickname || "None"
-      },
-      {
-        name: "📌 Joined Server",
-        value: `<t:${Math.floor(member.joinedTimestamp / 1000)}:F>`
-      },
-      {
-        name: "🎭 Roles",
-        value: roles
-      }
-    );
+      const createdAt = Math.floor(target.createdTimestamp / 1000);
+      const joinedAt = member
+        ? Math.floor(member.joinedTimestamp / 1000)
+        : null;
 
-  const avatarButton = new ButtonBuilder()
-    .setLabel("View avatar")
-    .setStyle(ButtonStyle.Link)
-    .setURL(targetUser.displayAvatarURL({ size: 1024 }));
+      const accountDays = Math.floor(
+        (Date.now() - target.createdTimestamp) / 86400000
+      );
 
-  return interaction.reply({
-    embeds: [embed],
-    components: [new ActionRowBuilder().addComponents(avatarButton)]
-  });
-}
+      const joinDays = member
+        ? Math.floor((Date.now() - member.joinedTimestamp) / 86400000)
+        : 0;
 
-    if (interaction.commandName === "say") {
-      const text = interaction.options.getString("text");
+      const roles = member
+        ? member.roles.cache
+            .filter(r => r.id !== interaction.guild.id)
+            .map(r => r.toString())
+        : [];
+
+      const perms = member ? member.permissions.toArray() : [];
+
+      const dangerousPerms = perms.filter(p =>
+        ["Administrator", "BanMembers", "KickMembers", "ManageGuild"].includes(p)
+      );
+
+      // 🧠 Behavior Analysis
+      let behavior = [];
+      if (accountDays < 14) behavior.push("🆕 Newly created account");
+      if (joinDays < 2) behavior.push("📥 Recently joined server");
+      if (!member?.presence) behavior.push("👻 Silent presence");
+      if (roles.length <= 1) behavior.push("🎭 Minimal role footprint");
+      if (!behavior.length) behavior.push("✅ Normal behavioral pattern");
+
+      // 📊 Trust Score
+      let trust = 100;
+      if (accountDays < 30) trust -= 30;
+      if (joinDays < 7) trust -= 20;
+      if (dangerousPerms.length > 0) trust += 10;
+      if (roles.length <= 1) trust -= 10;
+      trust = Math.max(0, Math.min(trust, 100));
+
+      // ☣️ Threat Index
+      let threat = 0;
+      if (trust < 40) threat += 4;
+      if (trust < 20) threat += 3;
+      if (dangerousPerms.length >= 2) threat += 2;
+      if (dangerousPerms.includes("Administrator")) threat += 3;
+      threat = Math.min(threat, 10);
+
+      const threatStatus =
+        threat <= 2 ? "🟢 Low"
+        : threat <= 5 ? "🟡 Medium"
+        : threat <= 8 ? "🔴 High"
+        : "☠️ Critical";
+
+      const embed = new EmbedBuilder()
+        .setColor(threat >= 6 ? 0xff0000 : 0x5865f2)
+        .setTitle("🧿 User Intelligence Profile")
+        .setThumbnail(target.displayAvatarURL({ dynamic: true }))
+        .addFields(
+          {
+            name: "👤 Identity",
+            value: `**User:** ${target.tag}\n**ID:** ${target.id}`
+          },
+          {
+            name: "⏱️ Timeline",
+            value:
+              `**Account Created:** <t:${createdAt}:R>\n` +
+              `**Joined Server:** ${joinedAt ? `<t:${joinedAt}:R>` : "Unknown"}`
+          },
+          {
+            name: "🎭 Roles",
+            value: roles.length ? roles.join(" ") : "None"
+          },
+          {
+            name: "🧠 Behavior Profile",
+            value: behavior.join("\n")
+          },
+          {
+            name: "📊 Trust Score",
+            value: `${trust}/100`,
+            inline: true
+          },
+          {
+            name: "☣️ Threat Index",
+            value: `${threat}/10 (${threatStatus})`,
+            inline: true
+          }
+        )
+        .setFooter({ text: "Omniscient System • Risk Analysis" })
+        .setTimestamp();
+
+      const avatarButton = new ButtonBuilder()
+        .setLabel("🖼 View Avatar")
+        .setStyle(ButtonStyle.Link)
+        .setURL(target.displayAvatarURL({ size: 1024 }));
 
       return interaction.reply({
-        content: text
+        embeds: [embed],
+        components: [new ActionRowBuilder().addComponents(avatarButton)]
       });
     }
 
+    // /say
+    if (interaction.commandName === "say") {
+      const text = interaction.options.getString("text");
+      return interaction.reply({ content: text });
+    }
+
+    // /help
     if (interaction.commandName === "help") {
       const embed = new EmbedBuilder()
         .setColor(0x5865f2)
         .setTitle("📖 Help Menu")
-        .setDescription("𝙈𝙖𝙪 𝙥𝙖𝙠𝙖𝙞 𝙘𝙤𝙢𝙢𝙖𝙣𝙙 𝙖𝙥𝙖? 𝙋𝙞𝙡𝙞𝙝 𝙠𝙖𝙩𝙚𝙜𝙤𝙧𝙞𝙣𝙮𝙖 𝙙𝙪𝙡𝙪 𝙮𝙖");
+        .setDescription("Pilih kategori command di bawah 👇");
 
       const select = new StringSelectMenuBuilder()
         .setCustomId("help_select")
@@ -259,7 +333,9 @@ client.on("interactionCreate", async interaction => {
     }
   }
 
-  // ===== SELECT MENU =====
+  // =====================
+  // SELECT MENU
+  // =====================
   if (interaction.isStringSelectMenu()) {
     if (interaction.customId === "help_select") {
       const category = interaction.values[0];
@@ -281,7 +357,9 @@ client.on("interactionCreate", async interaction => {
     }
   }
 
-  // ===== BUTTON =====
+  // =====================
+  // BUTTON
+  // =====================
   if (interaction.isButton()) {
     const [_, category, action] = interaction.customId.split("_");
 
