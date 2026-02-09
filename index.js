@@ -21,6 +21,10 @@ const commands = [
   new SlashCommandBuilder()
     .setName("ping")
     .setDescription("Cek respon bot"),
+
+    new SlashCommandBuilder()
+    .setName("help")
+    .setDescription("Menu bantuan bot"),
 ];
 
 // =====================
@@ -60,6 +64,14 @@ client.on("interactionCreate", async interaction => {
   if (interaction.commandName === "ping") {
     await interaction.deferReply();
     await interaction.editReply("😂Lem!");
+  }
+
+  if (interaction.commandName === "help" ) {
+    await interaction.reply(
+       "📖 **Menu Help**\n\n" +
+      "• `/ping` → cek respon bot\n" +
+      "• `/help` → lihat bantuan"
+    );
   }
 });
 
