@@ -4,31 +4,34 @@ import {
   GatewayIntentBits,
   REST,
   Routes,
-  SlashCommandBuilder
+  SlashCommandBuilder,
+  EmbedBuilder,
+  ActionRowBuilder,
+  StringSelectMenuBuilder
 } from "discord.js";
 
 // =====================
-// CLIENT (HANYA SEKALI)
+// CLIENT
 // =====================
 const client = new Client({
   intents: [GatewayIntentBits.Guilds],
 });
 
 // =====================
-// DAFTAR COMMAND
+// SLASH COMMAND
 // =====================
 const commands = [
   new SlashCommandBuilder()
     .setName("ping")
     .setDescription("Cek respon bot"),
 
-    new SlashCommandBuilder()
+  new SlashCommandBuilder()
     .setName("help")
     .setDescription("Menu bantuan bot"),
 ];
 
 // =====================
-// REGISTER SLASH COMMAND
+// REGISTER COMMAND
 // =====================
 const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_TOKEN);
 
@@ -49,29 +52,82 @@ const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_TOKEN);
 })();
 
 // =====================
-// BOT READY
+// READY
 // =====================
 client.once("ready", () => {
   console.log(`🤖 Bot online sebagai ${client.user.tag}`);
 });
 
 // =====================
-// COMMAND HANDLER
+// INTERACTION HANDLER
 // =====================
 client.on("interactionCreate", async interaction => {
-  if (!interaction.isChatInputCommand()) return;
 
-  if (interaction.commandName === "ping") {
-    await interaction.deferReply();
-    await interaction.editReply("😂Lem!");
+  // ===== SLASH COMMAND =====
+  if (interaction.isChatInputCommand()) {
+
+    if (interaction.commandName === "ping") {
+      await interaction.reply("😂 Lem!");
+    }
+
+    if (interaction.commandName === "help") {
+      const helpEmbed = new EmbedBuilder()
+        .setColor(0x5865f2)
+        .setTitle("📖 Help Menu")
+        .setDescription("Pilih kategori command di bawah");
+
+      const menu = new StringSelectMenuBuilder()
+        .setCustomId("help_menu")
+        .setPlaceholder("Select a command category")
+        .addOptions([
+          {
+            label: "Information",
+            value: "info",
+            description: "Ping, About, Stats"
+          },
+          {
+            label: "Other",
+            value: "other",
+            description: "Vote, Clean, Premium"
+          }
+        ]);
+
+      const row = new ActionRowBuilder().addComponents(menu);
+
+      await interaction.reply({
+        embeds: [helpEmbed],
+        components: [row]
+      });
+    }
   }
 
-  if (interaction.commandName === "help" ) {
-    await interaction.reply(
-       "📖 **Menu Help**\n\n" +
-      "• `/ping` → cek respon bot\n" +
-      "• `/help` → lihat bantuan"
-    );
+  // ===== SELECT MENU =====
+  if (interaction.isStringSelectMenu()) {
+    if (interaction.customId === "help_menu") {
+      let embed;
+
+      if (interaction.values[0] === "info") {
+        embed = new EmbedBuilder()
+          .setTitle("ℹ️ Information Commands")
+          .setDescription(`
+**/ping** – Check bot latency  
+**/about** – Bot information  
+**/stats** – Bot statistics
+          `);
+      }
+
+      if (interaction.values[0] === "other") {
+        embed = new EmbedBuilder()
+          .setTitle("📦 Other Commands")
+          .setDescription(`
+**/vote** – Support the bot  
+**/clean** – Delete messages  
+**/premium** – Support project
+          `);
+      }
+
+      await interaction.update({ embeds: [embed] });
+    }
   }
 });
 
