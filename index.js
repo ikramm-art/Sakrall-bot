@@ -183,7 +183,7 @@ client.on("interactionCreate", async interaction => {
       const embed = new EmbedBuilder()
         .setColor(0x5865f2)
         .setTitle("📖 Help Menu")
-        .setDescription("Pilih kategori command");
+        .setDescription("𝙈𝙖𝙪 𝙥𝙖𝙠𝙖𝙞 𝙘𝙤𝙢𝙢𝙖𝙣𝙙 𝙖𝙥𝙖? 𝙋𝙞𝙡𝙞𝙝 𝙠𝙖𝙩𝙚𝙜𝙤𝙧𝙞𝙣𝙮𝙖 𝙙𝙪𝙡𝙪 𝙮𝙖");
 
       const select = new StringSelectMenuBuilder()
         .setCustomId("help_select")
