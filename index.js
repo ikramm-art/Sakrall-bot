@@ -7,6 +7,7 @@ import {
   SlashCommandBuilder,
   EmbedBuilder,
   ActionRowBuilder,
+  StringSelectMenuBuilder,
   ButtonBuilder,
   ButtonStyle
 } from "discord.js";
@@ -19,7 +20,7 @@ const client = new Client({
 });
 
 // =====================
-// SLASH COMMAND
+// COMMAND
 // =====================
 const commands = [
   new SlashCommandBuilder()
@@ -37,86 +38,87 @@ const commands = [
 const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_TOKEN);
 
 (async () => {
-  try {
-    console.log("🚀 Register slash command...");
-    await rest.put(
-      Routes.applicationGuildCommands(
-        process.env.CLIENT_ID,
-        process.env.GUILD_ID
-      ),
-      { body: commands.map(cmd => cmd.toJSON()) }
-    );
-    console.log("✅ Slash command terdaftar");
-  } catch (err) {
-    console.error(err);
-  }
+  await rest.put(
+    Routes.applicationGuildCommands(
+      process.env.CLIENT_ID,
+      process.env.GUILD_ID
+    ),
+    { body: commands.map(c => c.toJSON()) }
+  );
+  console.log("✅ Slash command registered");
 })();
 
 // =====================
-// READY
+// HELP DATA
 // =====================
-client.once("ready", () => {
-  console.log(`🤖 Bot online sebagai ${client.user.tag}`);
-});
-
-// =====================
-// HELP PAGES
-// =====================
-const helpPages = [
-  {
-    title: "ℹ️ Information",
-    description: `
-**/ping** – Check bot latency  
-**/about** – Bot information  
-**/stats** – Bot statistics  
-**/dashboard** – Bot dashboard  
-**/changelogs** – Latest updates
-    `
-  },
-  {
-    title: "📦 Other",
-    description: `
-**/vote** – Support the bot  
-**/clean** – Delete messages  
-**/premium** – Donate  
-**/leaderboard** – View rankings
-    `
-  }
-];
+const helpData = {
+  info: [
+    {
+      title: "ℹ️ Information (1/2)",
+      description: `
+**/ping** – Check latency  
+**/about** – Bot info
+      `
+    },
+    {
+      title: "ℹ️ Information (2/2)",
+      description: `
+**/stats** – Bot stats  
+**/dashboard** – Web panel
+      `
+    }
+  ],
+  other: [
+    {
+      title: "📦 Other (1/1)",
+      description: `
+**/vote** – Support bot  
+**/clean** – Delete messages
+      `
+    }
+  ]
+};
 
 // =====================
 // BUTTON BUILDER
 // =====================
-function getButtons(page, maxPage) {
+function getButtons(category, page, max) {
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder()
-      .setCustomId("first")
+      .setCustomId(`help_${category}_first`)
       .setLabel("<<")
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(page === 0),
 
     new ButtonBuilder()
-      .setCustomId("prev")
+      .setCustomId(`help_${category}_prev`)
       .setLabel("<")
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(page === 0),
 
     new ButtonBuilder()
-      .setCustomId("next")
+      .setCustomId(`help_${category}_next`)
       .setLabel(">")
       .setStyle(ButtonStyle.Secondary)
-      .setDisabled(page === maxPage),
+      .setDisabled(page === max),
 
     new ButtonBuilder()
-      .setCustomId("last")
+      .setCustomId(`help_${category}_last`)
       .setLabel(">>")
       .setStyle(ButtonStyle.Secondary)
-      .setDisabled(page === maxPage)
+      .setDisabled(page === max)
   );
 }
 
 // =====================
-// INTERACTION HANDLER
+// READY
+// =====================
+client.once("ready", () => {
+  console.log(`🤖 Bot online: ${client.user.tag}`);
+});
+
+// =====================
+// INTERACTION
 // =====================
 client.on("interactionCreate", async interaction => {
 
@@ -128,43 +130,72 @@ client.on("interactionCreate", async interaction => {
     }
 
     if (interaction.commandName === "help") {
-      const page = 0;
-
       const embed = new EmbedBuilder()
         .setColor(0x5865f2)
-        .setTitle(helpPages[page].title)
-        .setDescription(helpPages[page].description)
-        .setFooter({ text: `Page ${page + 1} / ${helpPages.length}` });
+        .setTitle("📖 Help Menu")
+        .setDescription("Pilih kategori command");
+
+      const select = new StringSelectMenuBuilder()
+        .setCustomId("help_select")
+        .setPlaceholder("Select category")
+        .addOptions([
+          { label: "Information", value: "info" },
+          { label: "Other", value: "other" }
+        ]);
 
       return interaction.reply({
         embeds: [embed],
-        components: [getButtons(page, helpPages.length - 1)]
+        components: [new ActionRowBuilder().addComponents(select)]
       });
     }
   }
 
-  // ===== BUTTON PAGINATION =====
+  // ===== SELECT MENU =====
+  if (interaction.isStringSelectMenu()) {
+    if (interaction.customId === "help_select") {
+      const category = interaction.values[0];
+      const page = 0;
+
+      const data = helpData[category][page];
+      const embed = new EmbedBuilder()
+        .setColor(0x5865f2)
+        .setTitle(data.title)
+        .setDescription(data.description);
+
+      return interaction.update({
+        embeds: [embed],
+        components: [
+          interaction.message.components[0],
+          getButtons(category, page, helpData[category].length - 1)
+        ]
+      });
+    }
+  }
+
+  // ===== BUTTON =====
   if (interaction.isButton()) {
-    let page = Number(
-      interaction.message.embeds[0].footer.text.split(" ")[1]
-    ) - 1;
+    const [_, category, action] = interaction.customId.split("_");
 
-    const maxPage = helpPages.length - 1;
+    let page = parseInt(interaction.message.embeds[0].title.match(/\((\d+)/)[1]) - 1;
+    const max = helpData[category].length - 1;
 
-    if (interaction.customId === "first") page = 0;
-    if (interaction.customId === "prev") page--;
-    if (interaction.customId === "next") page++;
-    if (interaction.customId === "last") page = maxPage;
+    if (action === "first") page = 0;
+    if (action === "prev") page--;
+    if (action === "next") page++;
+    if (action === "last") page = max;
 
+    const data = helpData[category][page];
     const embed = new EmbedBuilder()
       .setColor(0x5865f2)
-      .setTitle(helpPages[page].title)
-      .setDescription(helpPages[page].description)
-      .setFooter({ text: `Page ${page + 1} / ${helpPages.length}` });
+      .setTitle(data.title)
+      .setDescription(data.description);
 
     return interaction.update({
       embeds: [embed],
-      components: [getButtons(page, maxPage)]
+      components: [
+        interaction.message.components[0],
+        getButtons(category, page, max)
+      ]
     });
   }
 });
