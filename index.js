@@ -7,7 +7,8 @@ import {
   SlashCommandBuilder,
   EmbedBuilder,
   ActionRowBuilder,
-  StringSelectMenuBuilder
+  ButtonBuilder,
+  ButtonStyle
 } from "discord.js";
 
 // =====================
@@ -59,6 +60,62 @@ client.once("ready", () => {
 });
 
 // =====================
+// HELP PAGES
+// =====================
+const helpPages = [
+  {
+    title: "ℹ️ Information",
+    description: `
+**/ping** – Check bot latency  
+**/about** – Bot information  
+**/stats** – Bot statistics  
+**/dashboard** – Bot dashboard  
+**/changelogs** – Latest updates
+    `
+  },
+  {
+    title: "📦 Other",
+    description: `
+**/vote** – Support the bot  
+**/clean** – Delete messages  
+**/premium** – Donate  
+**/leaderboard** – View rankings
+    `
+  }
+];
+
+// =====================
+// BUTTON BUILDER
+// =====================
+function getButtons(page, maxPage) {
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId("first")
+      .setLabel("<<")
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(page === 0),
+
+    new ButtonBuilder()
+      .setCustomId("prev")
+      .setLabel("<")
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(page === 0),
+
+    new ButtonBuilder()
+      .setCustomId("next")
+      .setLabel(">")
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(page === maxPage),
+
+    new ButtonBuilder()
+      .setCustomId("last")
+      .setLabel(">>")
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(page === maxPage)
+  );
+}
+
+// =====================
 // INTERACTION HANDLER
 // =====================
 client.on("interactionCreate", async interaction => {
@@ -67,67 +124,48 @@ client.on("interactionCreate", async interaction => {
   if (interaction.isChatInputCommand()) {
 
     if (interaction.commandName === "ping") {
-      await interaction.reply("😂 Lem!");
+      return interaction.reply("😂 Lem!");
     }
 
     if (interaction.commandName === "help") {
-      const helpEmbed = new EmbedBuilder()
+      const page = 0;
+
+      const embed = new EmbedBuilder()
         .setColor(0x5865f2)
-        .setTitle("📖 Help Menu")
-        .setDescription("Pilih kategori command di bawah");
+        .setTitle(helpPages[page].title)
+        .setDescription(helpPages[page].description)
+        .setFooter({ text: `Page ${page + 1} / ${helpPages.length}` });
 
-      const menu = new StringSelectMenuBuilder()
-        .setCustomId("help_menu")
-        .setPlaceholder("Select a command category")
-        .addOptions([
-          {
-            label: "Information",
-            value: "info",
-            description: "Ping, About, Stats"
-          },
-          {
-            label: "Other",
-            value: "other",
-            description: "Vote, Clean, Premium"
-          }
-        ]);
-
-      const row = new ActionRowBuilder().addComponents(menu);
-
-      await interaction.reply({
-        embeds: [helpEmbed],
-        components: [row]
+      return interaction.reply({
+        embeds: [embed],
+        components: [getButtons(page, helpPages.length - 1)]
       });
     }
   }
 
-  // ===== SELECT MENU =====
-  if (interaction.isStringSelectMenu()) {
-    if (interaction.customId === "help_menu") {
-      let embed;
+  // ===== BUTTON PAGINATION =====
+  if (interaction.isButton()) {
+    let page = Number(
+      interaction.message.embeds[0].footer.text.split(" ")[1]
+    ) - 1;
 
-      if (interaction.values[0] === "info") {
-        embed = new EmbedBuilder()
-          .setTitle("ℹ️ Information Commands")
-          .setDescription(`
-**/ping** – Check bot latency  
-**/about** – Bot information  
-**/stats** – Bot statistics
-          `);
-      }
+    const maxPage = helpPages.length - 1;
 
-      if (interaction.values[0] === "other") {
-        embed = new EmbedBuilder()
-          .setTitle("📦 Other Commands")
-          .setDescription(`
-**/vote** – Support the bot  
-**/clean** – Delete messages  
-**/premium** – Support project
-          `);
-      }
+    if (interaction.customId === "first") page = 0;
+    if (interaction.customId === "prev") page--;
+    if (interaction.customId === "next") page++;
+    if (interaction.customId === "last") page = maxPage;
 
-      await interaction.update({ embeds: [embed] });
-    }
+    const embed = new EmbedBuilder()
+      .setColor(0x5865f2)
+      .setTitle(helpPages[page].title)
+      .setDescription(helpPages[page].description)
+      .setFooter({ text: `Page ${page + 1} / ${helpPages.length}` });
+
+    return interaction.update({
+      embeds: [embed],
+      components: [getButtons(page, maxPage)]
+    });
   }
 });
 
