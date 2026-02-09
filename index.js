@@ -30,6 +30,19 @@ const commands = [
   new SlashCommandBuilder()
     .setName("help")
     .setDescription("Menu bantuan bot"),
+
+  // ===== BASIC COMMAND (INFORMATION) =====
+  new SlashCommandBuilder()
+    .setName("about")
+    .setDescription("Informasi tentang bot"),
+
+  new SlashCommandBuilder()
+    .setName("stats")
+    .setDescription("Statistik bot"),
+
+  new SlashCommandBuilder()
+    .setName("userinfo")
+    .setDescription("Informasi user"),
 ];
 
 // =====================
@@ -57,14 +70,14 @@ const helpData = {
       title: "ℹ️ Information (1/2)",
       description: `
 **/ping** – Check latency  
-**/about** – Bot info
+**/about** – Bot information  
+**/stats** – Bot statistics
       `
     },
     {
       title: "ℹ️ Information (2/2)",
       description: `
-**/stats** – Bot stats  
-**/dashboard** – Web panel
+**/userinfo** – User information
       `
     }
   ],
@@ -129,6 +142,43 @@ client.on("interactionCreate", async interaction => {
       return interaction.reply("😂 Lem!");
     }
 
+    if (interaction.commandName === "about") {
+      const embed = new EmbedBuilder()
+        .setColor(0x5865f2)
+        .setTitle("🤖 About Bot")
+        .setDescription("Bot Discord menggunakan discord.js v14");
+
+      return interaction.reply({ embeds: [embed] });
+    }
+
+    if (interaction.commandName === "stats") {
+      const embed = new EmbedBuilder()
+        .setColor(0x5865f2)
+        .setTitle("📊 Bot Stats")
+        .addFields(
+          { name: "Servers", value: `${client.guilds.cache.size}`, inline: true },
+          { name: "Users", value: `${client.users.cache.size}`, inline: true },
+          { name: "Ping", value: `${client.ws.ping} ms`, inline: true }
+        );
+
+      return interaction.reply({ embeds: [embed] });
+    }
+
+    if (interaction.commandName === "userinfo") {
+      const user = interaction.user;
+
+      const embed = new EmbedBuilder()
+        .setColor(0x5865f2)
+        .setTitle("👤 User Info")
+        .setThumbnail(user.displayAvatarURL())
+        .addFields(
+          { name: "Username", value: user.tag, inline: true },
+          { name: "User ID", value: user.id, inline: true }
+        );
+
+      return interaction.reply({ embeds: [embed] });
+    }
+
     if (interaction.commandName === "help") {
       const embed = new EmbedBuilder()
         .setColor(0x5865f2)
@@ -176,7 +226,10 @@ client.on("interactionCreate", async interaction => {
   if (interaction.isButton()) {
     const [_, category, action] = interaction.customId.split("_");
 
-    let page = parseInt(interaction.message.embeds[0].title.match(/\((\d+)/)[1]) - 1;
+    let page = parseInt(
+      interaction.message.embeds[0].title.match(/\((\d+)/)[1]
+    ) - 1;
+
     const max = helpData[category].length - 1;
 
     if (action === "first") page = 0;
