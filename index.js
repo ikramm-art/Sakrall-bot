@@ -1,3 +1,4 @@
+import { data as modHelpData, execute as modHelpExecute } from "./commands/admin/modhelp.js";
 import "dotenv/config";
 import {
   Client,
@@ -63,6 +64,8 @@ const commands = [
         .setDescription("Pesan yang ingin dikirim bot")
         .setRequired(true)
     ),
+
+    modHelpData
 ];
 
 // =====================
@@ -188,6 +191,11 @@ client.on("interactionCreate", async interaction => {
         );
 
       return interaction.reply({ embeds: [embed] });
+    }
+
+    // /modHelp
+    if (interaction.commandName === "modhelp") {
+      return modHelpExecute(interaction);
     }
 
     // =====================
