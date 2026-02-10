@@ -9,14 +9,15 @@ import {
   ActionRowBuilder,
   StringSelectMenuBuilder,
   ButtonBuilder,
-  ButtonStyle
+  ButtonStyle,
+  PermissionsBitField
 } from "discord.js";
 
 // =====================
 // CLIENT
 // =====================
 const client = new Client({
- intents: [
+  intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildPresences,
     GatewayIntentBits.GuildMembers
@@ -24,9 +25,10 @@ const client = new Client({
 });
 
 // =====================
-// COMMAND
+// COMMANDS
 // =====================
 const commands = [
+
   new SlashCommandBuilder()
     .setName("ping")
     .setDescription("Cek respon bot"),
@@ -35,7 +37,6 @@ const commands = [
     .setName("help")
     .setDescription("Menu bantuan bot"),
 
-  // ===== BASIC COMMAND (INFORMATION) =====
   new SlashCommandBuilder()
     .setName("about")
     .setDescription("Informasi tentang bot"),
@@ -45,24 +46,23 @@ const commands = [
     .setDescription("Statistik bot"),
 
   new SlashCommandBuilder()
-  .setName("userinfo")
-  .setDescription("Informasi user")
-  .addUserOption(option =>
-    option
-      .setName("user")
-      .setDescription("Pilih user")
-      .setRequired(false)
-  ),
+    .setName("userinfo")
+    .setDescription("Informasi user (Omniscient)")
+    .addUserOption(option =>
+      option.setName("user").setDescription("Pilih user")
+    ),
 
   new SlashCommandBuilder()
     .setName("say")
     .setDescription("Bot mengirim pesan sesuai teks kamu")
     .addStringOption(option =>
-      option
-        .setName("text")
-        .setDescription("Pesan yang ingin dikirim bot")
-        .setRequired(true)
+      option.setName("text").setDescription("Pesan").setRequired(true)
     ),
+
+  // 🔥 MOD HELP
+  new SlashCommandBuilder()
+    .setName("modhelp")
+    .setDescription("Omniscient Moderator Control Panel"),
 ];
 
 // =====================
@@ -78,7 +78,7 @@ const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_TOKEN);
     ),
     { body: commands.map(c => c.toJSON()) }
   );
-  console.log("✅ Slash command registered");
+  console.log("✅ Slash commands registered");
 })();
 
 // =====================
@@ -88,57 +88,92 @@ const helpData = {
   info: [
     {
       title: "ℹ️ Information (1/2)",
-      description: `
-**/ping** – Check latency  
-**/about** – Bot information  
-**/stats** – Bot statistics
-      `
+      description:
+        "**/ping** – Check latency\n" +
+        "**/about** – Bot information\n" +
+        "**/stats** – Bot statistics"
     },
     {
       title: "ℹ️ Information (2/2)",
-      description: `
-**/userinfo** – User information
-**/say** - Bot repeat your message
-      `
-    }
-  ],
-  other: [
-    {
-      title: "📦 Other (1/1)",
-      description: `
-**/vote** – Support bot  
-**/clean** – Delete messages
-      `
+      description:
+        "**/userinfo** – User intelligence\n" +
+        "**/say** – Bot repeat message"
     }
   ]
 };
 
 // =====================
+// MOD HELP DATA
+// =====================
+const modPages = [
+  {
+    title: "🧿 Omniscient Mod Panel (1/3)",
+    description:
+      "**Clearance:** MODERATOR+\n" +
+      "**System Core:** ONLINE",
+    fields: [
+      {
+        name: "🛡️ Moderation",
+        value:
+          "`/ban` – Ban user\n" +
+          "`/kick` – Kick user\n" +
+          "`/timeout` – Timeout member\n" +
+          "`/clean` – Purge messages"
+      }
+    ]
+  },
+  {
+    title: "🧠 Intelligence System (2/3)",
+    description: "Advanced monitoring tools.",
+    fields: [
+      {
+        name: "🔍 Analysis",
+        value:
+          "`/userinfo` – Threat scan\n" +
+          "`/auditlog` – Server log"
+      }
+    ]
+  },
+  {
+    title: "☠️ Protocol Warning (3/3)",
+    description: "All actions are logged.",
+    fields: [
+      {
+        name: "⚠️ Notice",
+        value:
+          "Abuse of power will trigger\n" +
+          "**automatic review**"
+      }
+    ]
+  }
+];
+
+// =====================
 // BUTTON BUILDER
 // =====================
-function getButtons(category, page, max) {
+function buildNavButtons(prefix, page, max) {
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder()
-      .setCustomId(`help_${category}_first`)
-      .setLabel("<<")
+      .setCustomId(`${prefix}_first`)
+      .setLabel("⏮")
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(page === 0),
 
     new ButtonBuilder()
-      .setCustomId(`help_${category}_prev`)
-      .setLabel("<")
+      .setCustomId(`${prefix}_prev`)
+      .setLabel("◀")
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(page === 0),
 
     new ButtonBuilder()
-      .setCustomId(`help_${category}_next`)
-      .setLabel(">")
+      .setCustomId(`${prefix}_next`)
+      .setLabel("▶")
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(page === max),
 
     new ButtonBuilder()
-      .setCustomId(`help_${category}_last`)
-      .setLabel(">>")
+      .setCustomId(`${prefix}_last`)
+      .setLabel("⏭")
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(page === max)
   );
@@ -168,147 +203,74 @@ client.on("interactionCreate", async interaction => {
 
     // /about
     if (interaction.commandName === "about") {
-      const embed = new EmbedBuilder()
-        .setColor(0x5865f2)
-        .setTitle("🤖 About Bot")
-        .setDescription("Bot Discord menggunakan discord.js v14");
-
-      return interaction.reply({ embeds: [embed] });
+      return interaction.reply({
+        embeds: [
+          new EmbedBuilder()
+            .setColor(0x5865f2)
+            .setTitle("🤖 About Bot")
+            .setDescription("Discord bot powered by discord.js v14")
+        ]
+      });
     }
 
     // /stats
     if (interaction.commandName === "stats") {
-      const embed = new EmbedBuilder()
-        .setColor(0x5865f2)
-        .setTitle("📊 Bot Stats")
-        .addFields(
-          { name: "Servers", value: `${client.guilds.cache.size}`, inline: true },
-          { name: "Users", value: `${client.users.cache.size}`, inline: true },
-          { name: "Ping", value: `${client.ws.ping} ms`, inline: true }
-        );
-
-      return interaction.reply({ embeds: [embed] });
+      return interaction.reply({
+        embeds: [
+          new EmbedBuilder()
+            .setColor(0x5865f2)
+            .setTitle("📊 Bot Stats")
+            .addFields(
+              { name: "Servers", value: `${client.guilds.cache.size}`, inline: true },
+              { name: "Users", value: `${client.users.cache.size}`, inline: true },
+              { name: "Ping", value: `${client.ws.ping} ms`, inline: true }
+            )
+        ]
+      });
     }
 
     // =====================
-    // /userinfo OMNISCIENT
+    // /modhelp (ADMIN & MOD)
     // =====================
-    if (interaction.commandName === "userinfo") {
+    if (interaction.commandName === "modhelp") {
 
-      const target =
-        interaction.options.getUser("user") || interaction.user;
+      if (
+        !interaction.member.permissions.has(
+          PermissionsBitField.Flags.ManageGuild |
+          PermissionsBitField.Flags.Administrator |
+          PermissionsBitField.Flags.BanMembers |
+          PermissionsBitField.Flags.KickMembers
+        )
+      ) {
+        return interaction.reply({
+          content: "⛔ Clearance denied. Moderator only.",
+          ephemeral: true
+        });
+      }
 
-      const member = await interaction.guild.members
-        .fetch(target.id)
-        .catch(() => null);
-
-      const createdAt = Math.floor(target.createdTimestamp / 1000);
-      const joinedAt = member
-        ? Math.floor(member.joinedTimestamp / 1000)
-        : null;
-
-      const accountDays = Math.floor(
-        (Date.now() - target.createdTimestamp) / 86400000
-      );
-
-      const joinDays = member
-        ? Math.floor((Date.now() - member.joinedTimestamp) / 86400000)
-        : 0;
-
-      const roles = member
-        ? member.roles.cache
-            .filter(r => r.id !== interaction.guild.id)
-            .map(r => r.toString())
-        : [];
-
-      const perms = member ? member.permissions.toArray() : [];
-
-      const dangerousPerms = perms.filter(p =>
-        ["Administrator", "BanMembers", "KickMembers", "ManageGuild"].includes(p)
-      );
-
-      // 🧠 Behavior Analysis
-      let behavior = [];
-      if (accountDays < 14) behavior.push("🆕 Newly created account");
-      if (joinDays < 2) behavior.push("📥 Recently joined server");
-      if (!member?.presence) behavior.push("👻 Silent presence");
-      if (roles.length <= 1) behavior.push("🎭 Minimal role footprint");
-      if (!behavior.length) behavior.push("✅ Normal behavioral pattern");
-
-      // 📊 Trust Score
-      let trust = 100;
-      if (accountDays < 30) trust -= 30;
-      if (joinDays < 7) trust -= 20;
-      if (dangerousPerms.length > 0) trust += 10;
-      if (roles.length <= 1) trust -= 10;
-      trust = Math.max(0, Math.min(trust, 100));
-
-      // ☣️ Threat Index
-      let threat = 0;
-      if (trust < 40) threat += 4;
-      if (trust < 20) threat += 3;
-      if (dangerousPerms.length >= 2) threat += 2;
-      if (dangerousPerms.includes("Administrator")) threat += 3;
-      threat = Math.min(threat, 10);
-
-      const threatStatus =
-        threat <= 2 ? "🟢 Low"
-        : threat <= 5 ? "🟡 Medium"
-        : threat <= 8 ? "🔴 High"
-        : "☠️ Critical";
+      const page = 0;
+      const data = modPages[page];
 
       const embed = new EmbedBuilder()
-        .setColor(threat >= 6 ? 0xff0000 : 0x5865f2)
-        .setTitle("🧿 User Intelligence Profile")
-        .setThumbnail(target.displayAvatarURL({ dynamic: true }))
-        .addFields(
-          {
-            name: "👤 Identity",
-            value: `**User:** ${target.tag}\n**ID:** ${target.id}`
-          },
-          {
-            name: "⏱️ Timeline",
-            value:
-              `**Account Created:** <t:${createdAt}:R>\n` +
-              `**Joined Server:** ${joinedAt ? `<t:${joinedAt}:R>` : "Unknown"}`
-          },
-          {
-            name: "🎭 Roles",
-            value: roles.length ? roles.join(" ") : "None"
-          },
-          {
-            name: "🧠 Behavior Profile",
-            value: behavior.join("\n")
-          },
-          {
-            name: "📊 Trust Score",
-            value: `${trust}/100`,
-            inline: true
-          },
-          {
-            name: "☣️ Threat Index",
-            value: `${threat}/10 (${threatStatus})`,
-            inline: true
-          }
-        )
-        .setFooter({ text: "Omniscient System • Risk Analysis" })
+        .setColor(0xff0000)
+        .setTitle(data.title)
+        .setDescription(data.description)
+        .addFields(data.fields)
+        .setFooter({ text: "Omniscient System • Moderator Interface" })
         .setTimestamp();
-
-      const avatarButton = new ButtonBuilder()
-        .setLabel("🖼 View Avatar")
-        .setStyle(ButtonStyle.Link)
-        .setURL(target.displayAvatarURL({ size: 1024 }));
 
       return interaction.reply({
         embeds: [embed],
-        components: [new ActionRowBuilder().addComponents(avatarButton)]
+        components: [buildNavButtons("mod", page, modPages.length - 1)],
+        ephemeral: true
       });
     }
 
     // /say
     if (interaction.commandName === "say") {
-      const text = interaction.options.getString("text");
-      return interaction.reply({ content: text });
+      return interaction.reply({
+        content: interaction.options.getString("text")
+      });
     }
 
     // /help
@@ -316,15 +278,12 @@ client.on("interactionCreate", async interaction => {
       const embed = new EmbedBuilder()
         .setColor(0x5865f2)
         .setTitle("📖 Help Menu")
-        .setDescription("Pilih kategori command di bawah 👇");
+        .setDescription("Pilih kategori command");
 
       const select = new StringSelectMenuBuilder()
         .setCustomId("help_select")
         .setPlaceholder("Select category")
-        .addOptions([
-          { label: "Information", value: "info" },
-          { label: "Other", value: "other" }
-        ]);
+        .addOptions([{ label: "Information", value: "info" }]);
 
       return interaction.reply({
         embeds: [embed],
@@ -336,60 +295,50 @@ client.on("interactionCreate", async interaction => {
   // =====================
   // SELECT MENU
   // =====================
-  if (interaction.isStringSelectMenu()) {
-    if (interaction.customId === "help_select") {
-      const category = interaction.values[0];
-      const page = 0;
-
-      const data = helpData[category][page];
-      const embed = new EmbedBuilder()
-        .setColor(0x5865f2)
-        .setTitle(data.title)
-        .setDescription(data.description);
-
-      return interaction.update({
-        embeds: [embed],
-        components: [
-          interaction.message.components[0],
-          getButtons(category, page, helpData[category].length - 1)
-        ]
-      });
-    }
+  if (interaction.isStringSelectMenu() && interaction.customId === "help_select") {
+    const data = helpData[interaction.values[0]][0];
+    return interaction.update({
+      embeds: [
+        new EmbedBuilder()
+          .setColor(0x5865f2)
+          .setTitle(data.title)
+          .setDescription(data.description)
+      ],
+      components: []
+    });
   }
 
   // =====================
-  // BUTTON
+  // MOD BUTTON
   // =====================
-  if (interaction.isButton()) {
-    const [_, category, action] = interaction.customId.split("_");
+  if (interaction.isButton() && interaction.customId.startsWith("mod_")) {
 
-    let page = parseInt(
-      interaction.message.embeds[0].title.match(/\((\d+)/)[1]
-    ) - 1;
+    let page =
+      parseInt(interaction.message.embeds[0].title.match(/\((\d+)/)[1]) - 1;
 
-    const max = helpData[category].length - 1;
+    const max = modPages.length - 1;
 
-    if (action === "first") page = 0;
-    if (action === "prev") page--;
-    if (action === "next") page++;
-    if (action === "last") page = max;
+    if (interaction.customId === "mod_first") page = 0;
+    if (interaction.customId === "mod_prev") page--;
+    if (interaction.customId === "mod_next") page++;
+    if (interaction.customId === "mod_last") page = max;
 
-    const data = helpData[category][page];
+    const data = modPages[page];
+
     const embed = new EmbedBuilder()
-      .setColor(0x5865f2)
+      .setColor(0xff0000)
       .setTitle(data.title)
-      .setDescription(data.description);
+      .setDescription(data.description)
+      .addFields(data.fields)
+      .setFooter({ text: "Omniscient System • Moderator Interface" })
+      .setTimestamp();
 
     return interaction.update({
       embeds: [embed],
-      components: [
-        interaction.message.components[0],
-        getButtons(category, page, max)
-      ]
+      components: [buildNavButtons("mod", page, max)]
     });
   }
 });
 
 // =====================
 client.login(process.env.DISCORD_TOKEN);
-
