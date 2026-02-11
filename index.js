@@ -1,4 +1,13 @@
-import { data as modHelpData, execute as modHelpExecute } from "./commands/admin/modhelp.js";
+import {
+  data as modHelpData,
+  execute as modHelpExecute
+} from "./commands/admin/modhelp.js";
+
+import {
+  data as serverStatsData,
+  execute as serverStatsExecute 
+} from "./commands/admin/serverstats.js"
+
 import "dotenv/config";
 import {
   Client,
@@ -201,7 +210,7 @@ client.on("interactionCreate", async interaction => {
 
     // /serverstats
     if (interaction.commandName === "serverstats") {
-      return serverStatsExecute(interacion);
+      return serverStatsExecute(interaction);
     }
 
     // =====================
