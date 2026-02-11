@@ -65,7 +65,8 @@ const commands = [
         .setRequired(true)
     ),
 
-    modHelpData
+    modHelpData,
+    serverStatsData
 ];
 
 // =====================
@@ -196,6 +197,11 @@ client.on("interactionCreate", async interaction => {
     // /modHelp
     if (interaction.commandName === "modhelp") {
       return modHelpExecute(interaction);
+    }
+
+    // /serverstats
+    if (interaction.commandName === "serverstats") {
+      return serverStatsExecute(interacion);
     }
 
     // =====================
