@@ -6,18 +6,18 @@ import {
 
 export const data = new SlashCommandBuilder()
   .setName("modhelp")
-  .setDescription("Menu bantuan khusus admin & moderator");
+  .setDescription("Menu bantuan khusus admin & moderator")
+  .setDefaultMemberPermissions(
+    PermissionFlagsBits.Administrator |
+    PermissionFlagsBits.ManageGuild
+  );
 
 export async function execute(interaction) {
 
-  // 🔐 Permission check
+  // 🔐 Extra Safety Check
   if (
-    !interaction.member.permissions.has(
-      PermissionFlagsBits.Administrator
-    ) &&
-    !interaction.member.permissions.has(
-      PermissionFlagsBits.ManageGuild
-    )
+    !interaction.member.permissions.has(PermissionFlagsBits.Administrator) &&
+    !interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)
   ) {
     return interaction.reply({
       content: "❌ Command ini hanya untuk admin & moderator.",
