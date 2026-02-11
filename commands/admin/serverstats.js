@@ -50,7 +50,7 @@ export async function execute(interaction) {
 
   const overviewEmbed = new EmbedBuilder()
     .setColor(0x5865F2)
-    .setTitle(`👑 ${guild.name} • GOD Dashboard`)
+    .setTitle(`👑 ${guild.name}`)
     .setThumbnail(guild.iconURL({ dynamic: true }))
     .addFields(
       {
@@ -184,4 +184,3 @@ export async function execute(interaction) {
     await interaction.editReply({ components: [] });
   });
 }
-
